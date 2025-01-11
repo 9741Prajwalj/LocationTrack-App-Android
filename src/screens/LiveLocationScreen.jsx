@@ -46,7 +46,7 @@ const LiveLocationScreen = () => {
     startLocationTracking();
 
     // Set up a real-time listener to fetch updated location from Firebase
-    const locationRef = database().ref('Realtime');
+    const locationRef = database().ref('RealtimeData');
     const listener = locationRef.on('value', (snapshot) => {
       const liveLocation = snapshot.val();
       if (liveLocation) {
@@ -69,20 +69,12 @@ const LiveLocationScreen = () => {
       timestamp,
     };
 
-    const locationRef = database().ref('Realtime');
-
-    // Remove previous data before pushing the new data
-    locationRef.remove()
-      .then(() => {
-        console.log('Previous location data removed');
-        // Push location data to Firebase
-        locationRef.push(locationData)
-          .then(() => console.log('Location data pushed to Firebase!'))
-          .catch((error) => console.error('Error pushing location to Firebase:', error));
-      })
-      .catch((error) => {
-        console.error('Error removing previous location data:', error);
-      });
+    // Set the location data directly under 'RealtimeData'
+    database()
+      .ref('RealtimeData') // This will overwrite data under 'RealtimeData' in Firebase
+      .set(locationData)
+      .then(() => console.log('Location data pushed to Firebase!'))
+      .catch((error) => console.error('Error pushing location to Firebase:', error));
   };
 
   if (loading) {
