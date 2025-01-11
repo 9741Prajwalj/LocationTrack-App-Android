@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "385007317401",
+    "firebase_url": "https://tacklocation-76b34-default-rtdb.firebaseio.com",
+    "project_id": "tacklocation-76b34",
+    "storage_bucket": "tacklocation-76b34.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:385007317401:android:1c20698d9c077cb3c92308",
+        "android_client_info": {
+          "package_name": "com.tracklocation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYek4Df3ffaZomPYCpTQBKl50TSyiWpqI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

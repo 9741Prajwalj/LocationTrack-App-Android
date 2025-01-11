@@ -1,0 +1,25 @@
+PS C:\React JS\TrackLocation> keytool -list -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android
+Alias name: androiddebugkey
+Creation date: 10-Jan-2025
+Entry type: PrivateKeyEntry
+Certificate chain length: 1
+Certificate[1]:
+Owner: CN=prajwal j, OU=TrackLocation, O=location, L=Banglore, ST=Karnataka, C=91
+Issuer: CN=prajwal j, OU=TrackLocation, O=location, L=Banglore, ST=Karnataka, C=91
+Serial number: 9d743e1541a253b6
+Valid from: Fri Jan 10 23:04:03 IST 2025 until: Tue May 28 23:04:03 IST 2052
+Certificate fingerprints:
+         SHA1: 06:73:EC:0C:83:A7:24:10:90:8D:05:6A:D7:F4:82:32:FA:38:EE:AF
+         SHA256: 2B:9C:39:13:C6:00:A6:02:D5:95:D3:EA:40:41:69:5C:25:9B:AB:09:07:12:CD:0C:AF:60:E0:20:F0:30:67:FA
+Signature algorithm name: SHA256withRSA
+Subject Public Key Algorithm: 2048-bit RSA key
+Version: 3
+
+Extensions:
+
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: 5C A9 2A 50 C4 59 A8 93   46 0D A1 E7 AC 46 01 E7  \.*P.Y..F....F..
+0010: C5 49 2D 9F                                        .I-.
+]
+]
