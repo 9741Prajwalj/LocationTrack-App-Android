@@ -3,7 +3,7 @@ import { View, StyleSheet, Text, Button } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import database from '@react-native-firebase/database'; // Import Firebase Realtime Database
-import axios from 'axios'; // For making HTTP requests to Google Maps Directions API
+import turf from "@turf/turf"; // Import Turf.js
 
 // Generate dummy data for the last 7 days (excluding future dates)
 const generateDummyDataForSelectedDate = (selectedDate) => {
@@ -33,13 +33,28 @@ const storeDataInFirebase = async (data) => {
   }
 };
 
+// Function to generate curved polyline using Turf.js
+const generateCurvedPolyline = (coordinates) => {
+  if (coordinates && coordinates.length > 1) {
+    const curvedCoordinates = [];
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      const start = turf.point(coordinates[i]);
+      const end = turf.point(coordinates[i + 1]);
+      // Create a curved path between two points
+      const curve = turf.greatCircle(start, end, { segments: 100 });
+      curvedCoordinates.push(...curve.geometry.coordinates);
+    }
+    return curvedCoordinates;
+  }
+  return coordinates;
+};
+
 const HistoryScreen = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [locations, setLocations] = useState({});
   const [loading, setLoading] = useState(false);
   const [isFutureDate, setIsFutureDate] = useState(false);
-  const [routeCoordinates, setRouteCoordinates] = useState([]); // New state to hold the route coordinates
 
   useEffect(() => {
     if (Object.keys(locations).length > 0) {
@@ -47,7 +62,7 @@ const HistoryScreen = () => {
     }
   }, [locations]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = () => {
     const today = new Date();
     // Check if the selected date is in the future
     if (selectedDate > today) {
@@ -63,82 +78,9 @@ const HistoryScreen = () => {
       setTimeout(() => {
         const dummyLocations = generateDummyDataForSelectedDate(selectedDate);
         setLocations(dummyLocations);
-        fetchRoute(dummyLocations); // Fetch the route after locations are set
         setLoading(false);
       }, 2000);
     }
-  };
-
-  // Function to fetch route using Google Maps Directions API
-const fetchRoute = async (locations) => {
-  if (!locations || Object.keys(locations).length === 0) return;
-
-  const points = locations[Object.keys(locations)[0]]; // Get the first date's points
-
-  if (points.length > 1) {
-    // Create the waypoints array for the Directions API
-    const waypoints = points.map((point) => ({
-      latitude: point.latitude,
-      longitude: point.longitude,
-    }));
-
-    // Origin and destination (first and last points)
-    const origin = waypoints[0];
-    const destination = waypoints[waypoints.length - 1];
-
-    // Create the waypoints array excluding the origin and destination
-    const intermediateWaypoints = waypoints.slice(1, waypoints.length - 1).map((wp) => `${wp.latitude},${wp.longitude}`).join('|');
-
-    try {
-      const googleApiKey = 'AIzaSyCI7CwlYJ6Qt5pQGW--inSsJmdEManW-K0'; // Replace with your Google Maps API Key
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&waypoints=${intermediateWaypoints}&key=${googleApiKey}`;
-
-      const response = await axios.get(url);
-      const routeData = response.data.routes[0].legs[0].steps;
-
-      // Extract polyline coordinates from the directions response
-      const polyline = [];
-      routeData.forEach((step) => {
-        polyline.push(...decodePolyline(step.polyline.points));
-      });
-
-      setRouteCoordinates(polyline); // Set the coordinates for the route
-    } catch (error) {
-      console.error("Error fetching directions:", error);
-    }
-  }
-};
-
-
-  // Function to decode polyline points from Google Maps Directions API
-  const decodePolyline = (encoded) => {
-    let points = [];
-    let index = 0;
-    let lat = 0;
-    let lng = 0;
-    while (index < encoded.length) {
-      let byte, shift = 0, result = 0;
-      do {
-        byte = encoded.charCodeAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-      const dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        byte = encoded.charCodeAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-      const dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
-      lng += dlng;
-
-      points.push({ latitude: lat / 1E5, longitude: lng / 1E5 });
-    }
-    return points;
   };
 
   const onDateChange = (event, date) => {
@@ -179,7 +121,7 @@ const fetchRoute = async (locations) => {
           }}
         >
           {/* Only show data for the selected date */}
-          {Object.keys(locations).map((date) => (
+          {Object.keys(locations).map((date) =>
             locations[date].map((loc, index) => (
               <Marker
                 key={`${date}-${index}`}
@@ -188,17 +130,21 @@ const fetchRoute = async (locations) => {
                 description={`Latitude: ${loc.latitude.toFixed(6)}, Longitude: ${loc.longitude.toFixed(6)}\nDateTime: ${new Date(loc.timestamp).toLocaleString()}`}
               />
             ))
-          ))}
-          {/* Show route if available */}
-          {routeCoordinates.length > 0 && (
-            <Polyline
-              coordinates={routeCoordinates}
-              strokeWidth={4}
-              strokeColor="blue"
-            />
           )}
+          {Object.keys(locations).map((date) => {
+            // Map coordinates to [longitude, latitude] for Turf.js
+            const coordinates = locations[date].map((loc) => [loc.longitude, loc.latitude]);
+            const curvedCoordinates = generateCurvedPolyline(coordinates);
+            return (
+              <Polyline
+                key={date}
+                coordinates={curvedCoordinates.map(([longitude, latitude]) => ({ longitude, latitude }))} // Ensure correct format for Polyline
+                strokeWidth={2}
+                strokeColor="blue"
+              />
+            );
+          })}
         </MapView>
-
       )}
     </View>
   );
