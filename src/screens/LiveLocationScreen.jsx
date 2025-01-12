@@ -7,6 +7,9 @@ import {
   TextInput,
   Button,
   Alert,
+  Modal,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
@@ -27,6 +30,8 @@ const LiveLocationScreen = () => {
   const [points, setPoints] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedPoint, setSelectedPoint] = useState(null); // For editable marker details
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   // Request Location Permission (Android only)
   const getLocationPermission = async () => {
@@ -73,6 +78,7 @@ const LiveLocationScreen = () => {
         longitude: newLongitude,
         timestamp: new Date().toISOString(),
         pointNumber: count + 1,
+        description: `Point ${count + 1}`, // Add a description field
       };
 
       newPoints.push(newPoint);
@@ -96,6 +102,46 @@ const LiveLocationScreen = () => {
       .catch((error) =>
         Alert.alert('Error', `Failed to push data: ${error.message}`)
       );
+  };
+
+  // Update marker data in Firebase
+  const updateFirebaseMarker = (updatedPoint) => {
+    const updatedPoints = points.map((point) =>
+      point.timestamp === updatedPoint.timestamp ? updatedPoint : point
+    );
+    setPoints(updatedPoints);
+
+    database()
+      .ref('/realtimeData')
+      .set(updatedPoints)
+      .then(() => Alert.alert('Success', 'Marker updated in Firebase'))
+      .catch((error) =>
+        Alert.alert('Error', `Failed to update marker: ${error.message}`)
+      );
+  };
+
+  // Open edit modal with selected point data
+  const handleMarkerPress = (point) => {
+    setSelectedPoint({
+      ...point,
+      editableLatitude: point.latitude.toString(),
+      editableLongitude: point.longitude.toString(),
+    });
+    setEditModalVisible(true);
+  };
+
+  // Handle marker updates
+  const handleUpdateMarker = () => {
+    if (selectedPoint) {
+      const updatedPoint = {
+        ...selectedPoint,
+        latitude: parseFloat(selectedPoint.editableLatitude),
+        longitude: parseFloat(selectedPoint.editableLongitude),
+      };
+
+      updateFirebaseMarker(updatedPoint);
+      setEditModalVisible(false);
+    }
   };
 
   // Handle location search
@@ -134,6 +180,21 @@ const LiveLocationScreen = () => {
         (error) => console.error('Error getting location:', error.message),
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
       );
+
+      // Listen for Firebase updates
+      const pointsRef = database().ref('/realtimeData');
+      pointsRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setPoints(data);
+          setRouteCoordinates(data.map((point) => ({
+            latitude: point.latitude,
+            longitude: point.longitude,
+          })));
+        }
+      });
+
+      return () => pointsRef.off('value');
     };
 
     init();
@@ -156,14 +217,6 @@ const LiveLocationScreen = () => {
         showsUserLocation={true}
         followsUserLocation={true}
       >
-        <Marker
-          coordinate={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-          }}
-          title="You are here"
-          description="This is your current location"
-        />
         <Polyline
           coordinates={routeCoordinates}
           strokeWidth={4}
@@ -177,18 +230,52 @@ const LiveLocationScreen = () => {
               longitude: point.longitude,
             }}
             pinColor="red"
-            onPress={() =>
-              Alert.alert(
-                `Point ${point.pointNumber}`,
-                `Latitude: ${point.latitude.toFixed(6)}\nLongitude: ${point.longitude.toFixed(6)}\nTime: ${point.timestamp}`
-              )
-            }
+            onPress={() => handleMarkerPress(point)}
           />
         ))}
       </MapView>
       <View style={styles.buttonContainer}>
         <Button title="Generate Points" onPress={generatePointsIncrementally} />
       </View>
+      <Modal visible={editModalVisible} transparent={true}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Marker Details</Text>
+          <Text style={styles.dataText}>Point Number: {selectedPoint?.pointNumber}</Text>
+          <Text style={styles.dataText}>Latitude: {selectedPoint?.latitude}</Text>
+          <Text style={styles.dataText}>Longitude: {selectedPoint?.longitude}</Text>
+          <Text style={styles.dataText}>Timestamp: {selectedPoint?.timestamp}</Text>
+          <TextInput
+            style={styles.input}
+            value={selectedPoint?.editableLatitude}
+            onChangeText={(text) =>
+              setSelectedPoint((prev) => ({
+                ...prev,
+                editableLatitude: text,
+              }))
+            }
+            placeholder="Latitude"
+          />
+          <TextInput
+            style={styles.input}
+            value={selectedPoint?.editableLongitude}
+            onChangeText={(text) =>
+              setSelectedPoint((prev) => ({
+                ...prev,
+                editableLongitude: text,
+              }))
+            }
+            placeholder="Longitude"
+          />
+          <View style={styles.modalButtons}>
+            <Button title="Save" onPress={handleUpdateMarker} />
+            <Button
+              title="Cancel"
+              onPress={() => setEditModalVisible(false)}
+              color="red"
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -196,6 +283,25 @@ const LiveLocationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    color:'white',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: 'white',
+  },
+  dataText: {
+    fontSize: 16,
+    color: 'black', // Set the text color to gray
+    marginVertical: 5,
   },
   map: {
     flex: 1,
@@ -221,6 +327,21 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-evenly',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: 'gray',
+    backgroundColor: 'white',
+    width: '100%',
+    padding: 10,
+    marginVertical: 5,
+    borderRadius: 5,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 10,
+    width: '100%',
   },
 });
 
