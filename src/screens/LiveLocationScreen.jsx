@@ -1,8 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, PermissionsAndroid, Platform, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  PermissionsAndroid,
+  Platform,
+  TextInput,
+  Button,
+  Alert,
+} from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import database from '@react-native-firebase/database';
+import Geocoder from 'react-native-geocoding';
+
+// Initialize Geocoder with your API key
+Geocoder.init('AIzaSyCI7CwlYJ6Qt5pQGW--inSsJmdEManW-K0');
 
 const LiveLocationScreen = () => {
   const [location, setLocation] = useState({
@@ -11,10 +23,10 @@ const LiveLocationScreen = () => {
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   });
-  const [routeCoordinates, setRouteCoordinates] = useState([]); // Stores locations for polyline
-  const [points, setPoints] = useState([]); // Stores marker points data
-
-  const [markerUpdateCount, setMarkerUpdateCount] = useState(0); // Track the number of updates
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [points, setPoints] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Request Location Permission (Android only)
   const getLocationPermission = async () => {
@@ -34,58 +46,74 @@ const LiveLocationScreen = () => {
     return true; // iOS permissions are handled in Info.plist
   };
 
-  // Simulate a new location (this can be replaced with real-time data if available)
-  const getNewLocation = (prevLocation) => {
-    const newLatitude = prevLocation.latitude + (Math.random() - 0.5) * 0.001; // Slight variation
-    const newLongitude = prevLocation.longitude + (Math.random() - 0.5) * 0.001;
-    return {
-      latitude: newLatitude,
-      longitude: newLongitude,
-    };
+  // Generate points incrementally every 5 seconds
+  const generatePointsIncrementally = () => {
+    if (isGenerating) {
+      Alert.alert('Already Generating', 'Points are already being generated.');
+      return;
+    }
+
+    setIsGenerating(true);
+    const newPoints = [];
+    let count = 0;
+
+    const timer = setInterval(() => {
+      if (count >= 10) {
+        clearInterval(timer);
+        setIsGenerating(false);
+        pushDataToFirebase(newPoints); // Push all points to Firebase
+        return;
+      }
+
+      const newLatitude = location.latitude + (Math.random() - 0.5) * 0.01;
+      const newLongitude = location.longitude + (Math.random() - 0.5) * 0.01;
+
+      const newPoint = {
+        latitude: newLatitude,
+        longitude: newLongitude,
+        timestamp: new Date().toISOString(),
+        pointNumber: count + 1,
+      };
+
+      newPoints.push(newPoint);
+
+      setPoints((prevPoints) => [...prevPoints, newPoint]);
+      setRouteCoordinates((prevCoords) => [
+        ...prevCoords,
+        { latitude: newLatitude, longitude: newLongitude },
+      ]);
+
+      count++;
+    }, 5000);
   };
 
-  // Update Marker and Push Location to Firebase
-  const updateMarkerLocation = async () => {
-    if (markerUpdateCount >= 10) return; // Stop updates after 10 iterations
-
-    const newLocation = getNewLocation(location);
-    const timestamp = new Date().toISOString();
-
-    const locationData = {
-      latitude: newLocation.latitude,
-      longitude: newLocation.longitude,
-      timestamp,
-      pointNumber: markerUpdateCount + 1, // Increment point number
-    };
-
-    // Update State
-    setLocation((prevState) => ({
-      ...prevState,
-      ...newLocation,
-    }));
-
-    // Update route coordinates for polyline
-    setRouteCoordinates((prevCoords) => [...prevCoords, newLocation]);
-
-    // Add marker point for this update
-    setPoints((prevPoints) => [...prevPoints, locationData]);
-
-    // Push Data to Firebase
+  // Push data to Firebase
+  const pushDataToFirebase = (data) => {
     database()
       .ref('/realtimeData')
-      .set(locationData)
-      .then(() => console.log('Updated location in Firebase'))
-      .catch((error) => console.error('Error updating Firebase:', error));
-
-    setMarkerUpdateCount((count) => count + 1); // Increment update count
+      .set(data)
+      .then(() => Alert.alert('Success', 'Data pushed to Firebase'))
+      .catch((error) =>
+        Alert.alert('Error', `Failed to push data: ${error.message}`)
+      );
   };
 
-  const handlePointPress = (point) => {
-    Alert.alert(
-      `Point ${point.pointNumber}`,
-      `Latitude: ${point.latitude.toFixed(6)}\nLongitude: ${point.longitude.toFixed(6)}\nTime: ${point.timestamp}`,
-      [{ text: 'OK' }]
-    );
+  // Handle location search
+  const handleSearch = () => {
+    if (!searchQuery) {
+      Alert.alert('Search Error', 'Please enter a location to search.');
+      return;
+    }
+    Geocoder.from(searchQuery)
+      .then((response) => {
+        const { lat, lng } = response.results[0].geometry.location;
+        setLocation({
+          ...location,
+          latitude: lat,
+          longitude: lng,
+        });
+      })
+      .catch((error) => Alert.alert('Search Error', error.message));
   };
 
   useEffect(() => {
@@ -102,7 +130,6 @@ const LiveLocationScreen = () => {
             latitude,
             longitude,
           }));
-          setRouteCoordinates([{ latitude, longitude }]); // Initialize polyline coordinates
         },
         (error) => console.error('Error getting location:', error.message),
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
@@ -110,18 +137,19 @@ const LiveLocationScreen = () => {
     };
 
     init();
-
-    // Start updating marker location every 5 seconds
-    const intervalId = setInterval(updateMarkerLocation, 5000);
-
-    // Stop updates after 10 iterations
-    setTimeout(() => clearInterval(intervalId), 5000 * 10);
-
-    return () => clearInterval(intervalId);
-  }, [markerUpdateCount]);
+  }, []);
 
   return (
     <View style={styles.container}>
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search location"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <Button title="Search" onPress={handleSearch} />
+      </View>
       <MapView
         style={styles.map}
         region={location}
@@ -149,10 +177,18 @@ const LiveLocationScreen = () => {
               longitude: point.longitude,
             }}
             pinColor="red"
-            onPress={() => handlePointPress(point)} // Display point details on press
+            onPress={() =>
+              Alert.alert(
+                `Point ${point.pointNumber}`,
+                `Latitude: ${point.latitude.toFixed(6)}\nLongitude: ${point.longitude.toFixed(6)}\nTime: ${point.timestamp}`
+              )
+            }
           />
         ))}
       </MapView>
+      <View style={styles.buttonContainer}>
+        <Button title="Generate Points" onPress={generatePointsIncrementally} />
+      </View>
     </View>
   );
 };
@@ -163,6 +199,28 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  searchContainer: {
+    position: 'absolute',
+    top: 10,
+    width: '100%',
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    zIndex: 1,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: 'gray',
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    marginRight: 10,
+  },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 10,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
   },
 });
 
