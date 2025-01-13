@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline } from "react-native-maps";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import database from '@react-native-firebase/database'; // Import Firebase Realtime Database
 import MapViewDirections from "react-native-maps-directions"; // Import Directions
-import Icon from "react-native-vector-icons/FontAwesome"; // For arrow marker
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"; // For arrow markers
 
 // Generate dummy data for the last 7 days (excluding future dates)
 const generateDummyDataForSelectedDate = (selectedDate) => {
@@ -89,9 +89,9 @@ const History = () => {
 
       arrows.push(
         <Marker key={`${start.latitude}-${start.longitude}-${i}`} coordinate={end} anchor={{ x: 0.5, y: 0.5 }}>
-          <Icon
-            name="fa-solid fa-circle-arrow-right"
-            size={50}
+          <MaterialCommunityIcons
+            name="arrow-right"
+            size={30}
             color="red"
             style={{ transform: [{ rotate: `${angle}deg` }] }}
           />

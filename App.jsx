@@ -34,6 +34,7 @@ const App = () => {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="LiveLocation" component={LiveLocationScreen} />
         <Stack.Screen name="History" component={History} />
+        <Stack.Screen name="HistoryLive" component={HistoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
     </>

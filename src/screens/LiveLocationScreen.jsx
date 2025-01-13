@@ -53,7 +53,7 @@ const LiveLocationScreen = () => {
   };
 
   const handleShowHistory = () => {
-    navigation.navigate('History', { historyData });  // Pass history data to the History screen
+    navigation.navigate('HistoryLive', { historyData });  // Pass history data to the History screen
   };
 
   return (
@@ -69,7 +69,7 @@ const LiveLocationScreen = () => {
         }}
         showsUserLocation={true}
       >
-        {/* Marker for current location (red color for fetched location) */}
+        {/* Marker for current location */}
         {coordinates ? (
           <Marker
             coordinate={{
@@ -78,7 +78,7 @@ const LiveLocationScreen = () => {
             }}
             title={`Location at ${coordinates.date}`}
             description={`Time: ${coordinates.time}`}
-            pinColor="red"  // Red color for fetched location marker
+            pinColor="blue"  // Optional: Customize the color of the marker (blue by default)
             // image={require('../components/skoegle_logo.png')}  // Optional: Custom image for the marker
           />
         ) : null}
