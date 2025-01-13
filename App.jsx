@@ -6,7 +6,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import HomeScreen from "./src/screens/HomeScreens";
 import LiveLocationScreen from "./src/screens/LiveLocationScreen";
 import HistoryScreen from "./src/screens/HistoryScreens";
-
+import History from "./src/screens/History";
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -33,7 +33,7 @@ const App = () => {
       <Stack.Navigator initialRouteName="Home">
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="LiveLocation" component={LiveLocationScreen} />
-        <Stack.Screen name="History" component={HistoryScreen} />
+        <Stack.Screen name="History" component={History} />
       </Stack.Navigator>
     </NavigationContainer>
     </>
