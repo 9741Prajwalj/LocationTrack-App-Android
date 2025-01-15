@@ -77,27 +77,76 @@ const History = () => {
 
   // Function to render arrows for each marker showing direction from one point to the next
   const renderArrowsAlongPath = (coordinates) => {
-    let arrows = [];
+    const arrows = [];
+    const arrowSpacingInMeters = 800; // Adjust arrow spacing
+    
+    // Calculate distance between two points in meters
+    const getDistanceInMeters = (start, end) => {
+      const R = 6371000; // Earth's radius in meters
+      const lat1 = (start.latitude * Math.PI) / 180;
+      const lat2 = (end.latitude * Math.PI) / 180;
+      const deltaLat = ((end.latitude - start.latitude) * Math.PI) / 180;
+      const deltaLng = ((end.longitude - start.longitude) * Math.PI) / 180;
+
+      const a =
+        Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+        Math.cos(lat1) *
+          Math.cos(lat2) *
+          Math.sin(deltaLng / 2) *
+          Math.sin(deltaLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    // Generate intermediate points for arrow placement
+    const getIntermediatePoints = (start, end, totalDistance) => {
+      const numArrows = Math.floor(totalDistance / arrowSpacingInMeters);
+      const latStep = (end.latitude - start.latitude) / numArrows;
+      const lngStep = (end.longitude - start.longitude) / numArrows;
+
+      const points = [];
+      for (let i = 1; i <= numArrows; i++) {
+        points.push({
+          latitude: start.latitude + latStep * i,
+          longitude: start.longitude + lngStep * i,
+        });
+      }
+      return points;
+    };
+
+    // Place arrows along the path
     for (let i = 0; i < coordinates.length - 1; i++) {
       const start = coordinates[i];
       const end = coordinates[i + 1];
+      const totalDistance = getDistanceInMeters(start, end);
 
-      // Calculate angle to rotate the arrow marker
-      const deltaLat = end.latitude - start.latitude;
-      const deltaLng = end.longitude - start.longitude;
-      const angle = Math.atan2(deltaLat, deltaLng) * (180 / Math.PI);
+      const intermediatePoints = getIntermediatePoints(start, end, totalDistance);
+      const angle =
+        (Math.atan2(
+          end.longitude - start.longitude,
+          end.latitude - start.latitude
+        ) *
+          180) /
+        Math.PI;
 
-      arrows.push(
-        <Marker key={`${start.latitude}-${start.longitude}-${i}`} coordinate={end} anchor={{ x: 0.5, y: 0.5 }}>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={30}
-            color="red"
-            style={{ transform: [{ rotate: `${angle}deg` }] }}
-          />
-        </Marker>
-      );
+      intermediatePoints.forEach((point, index) => {
+        arrows.push(
+          <Marker
+            key={`arrow-${i}-${index}`}
+            coordinate={point}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={24} // Adjust size as needed
+              color="red" // Arrow color
+              style={{ transform: [{ rotate: `${angle}deg` }] }}
+            />
+          </Marker>
+        );
+      });
     }
+
     return arrows;
   };
 
@@ -131,7 +180,7 @@ const History = () => {
             longitudeDelta: 0.1,
           }}
         >
-          {/* Only show data for the selected date */}
+          {/* Markers for locations */}
           {Object.keys(locations).map((date) =>
             locations[date].map((loc, index) => (
               <Marker
@@ -144,23 +193,28 @@ const History = () => {
             ))
           )}
 
-          {/* Render arrows for each path segment between consecutive markers */}
+          {/* Render polylines and arrows */}
           {Object.keys(locations).map((date) => {
-            const coordinates = locations[date].map((loc) => ({ latitude: loc.latitude, longitude: loc.longitude }));
+            const coordinates = locations[date].map((loc) => ({
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+            }));
 
             return (
               <>
-                {renderArrowsAlongPath(coordinates)}
-
+                {/* Polyline with MapViewDirections */}
                 <MapViewDirections
-                  key={date}
+                  key={`polyline-${date}`}
                   origin={coordinates[0]}
                   destination={coordinates[coordinates.length - 1]}
                   waypoints={coordinates.slice(1, coordinates.length - 1)}
-                  apikey="AIzaSyCI7CwlYJ6Qt5pQGW--inSsJmdEManW-K0"
+                  apikey="AIzaSyCI7CwlYJ6Qt5pQGW--inSsJmdEManW-K0" // Replace with your API key
                   strokeWidth={3}
                   strokeColor="blue"
                 />
+
+                {/* Render arrows above polyline */}
+                {renderArrowsAlongPath(coordinates)}
               </>
             );
           })}
