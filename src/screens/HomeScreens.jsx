@@ -5,10 +5,6 @@ const HomeScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
     {/* Image added here */}
-    <Image
-        source={require("../components/skoegle_logo.png")} // Replace with your image path
-        style={styles.image}
-      />
       <Text style={styles.title}>Location Tracker</Text>
       <Button
         title="Live Location"
@@ -32,11 +28,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    marginBottom: 20,
-  },
-  image: {
-    width: 200, // Adjust width as needed
-    height: 100, // Adjust height as needed
     marginBottom: 20,
   },
   button: {
