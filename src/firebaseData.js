@@ -1,5 +1,8 @@
 import database from '@react-native-firebase/database';
 
+
+//In firebase TrackLocation is the file/data located  
+
 // Initialize Firebase Data (Populate with Dummy Data)
 export const initializeFirebaseData = async () => {
   try {
