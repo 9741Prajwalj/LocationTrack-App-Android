@@ -75,80 +75,80 @@ const History = () => {
     }
   };
 
-  // Function to render arrows for each marker showing direction from one point to the next
-  const renderArrowsAlongPath = (coordinates) => {
-    const arrows = [];
-    const arrowSpacingInMeters = 800; // Adjust arrow spacing
+  // // Function to render arrows for each marker showing direction from one point to the next
+  // const renderArrowsAlongPath = (coordinates) => {
+  //   const arrows = [];
+  //   const arrowSpacingInMeters = 800; // Adjust arrow spacing
     
-    // Calculate distance between two points in meters
-    const getDistanceInMeters = (start, end) => {
-      const R = 6371000; // Earth's radius in meters
-      const lat1 = (start.latitude * Math.PI) / 180;
-      const lat2 = (end.latitude * Math.PI) / 180;
-      const deltaLat = ((end.latitude - start.latitude) * Math.PI) / 180;
-      const deltaLng = ((end.longitude - start.longitude) * Math.PI) / 180;
+  //   // Calculate distance between two points in meters
+  //   const getDistanceInMeters = (start, end) => {
+  //     const R = 6371000; // Earth's radius in meters
+  //     const lat1 = (start.latitude * Math.PI) / 180;
+  //     const lat2 = (end.latitude * Math.PI) / 180;
+  //     const deltaLat = ((end.latitude - start.latitude) * Math.PI) / 180;
+  //     const deltaLng = ((end.longitude - start.longitude) * Math.PI) / 180;
 
-      const a =
-        Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-        Math.cos(lat1) *
-          Math.cos(lat2) *
-          Math.sin(deltaLng / 2) *
-          Math.sin(deltaLng / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    };
+  //     const a =
+  //       Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+  //       Math.cos(lat1) *
+  //         Math.cos(lat2) *
+  //         Math.sin(deltaLng / 2) *
+  //         Math.sin(deltaLng / 2);
+  //     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  //     return R * c;
+  //   };
 
-    // Generate intermediate points for arrow placement
-    const getIntermediatePoints = (start, end, totalDistance) => {
-      const numArrows = Math.floor(totalDistance / arrowSpacingInMeters);
-      const latStep = (end.latitude - start.latitude) / numArrows;
-      const lngStep = (end.longitude - start.longitude) / numArrows;
+  //   // Generate intermediate points for arrow placement
+  //   const getIntermediatePoints = (start, end, totalDistance) => {
+  //     const numArrows = Math.floor(totalDistance / arrowSpacingInMeters);
+  //     const latStep = (end.latitude - start.latitude) / numArrows;
+  //     const lngStep = (end.longitude - start.longitude) / numArrows;
 
-      const points = [];
-      for (let i = 1; i <= numArrows; i++) {
-        points.push({
-          latitude: start.latitude + latStep * i,
-          longitude: start.longitude + lngStep * i,
-        });
-      }
-      return points;
-    };
+  //     const points = [];
+  //     for (let i = 1; i <= numArrows; i++) {
+  //       points.push({
+  //         latitude: start.latitude + latStep * i,
+  //         longitude: start.longitude + lngStep * i,
+  //       });
+  //     }
+  //     return points;
+  //   };
 
-    // Place arrows along the path
-    for (let i = 0; i < coordinates.length - 1; i++) {
-      const start = coordinates[i];
-      const end = coordinates[i + 1];
-      const totalDistance = getDistanceInMeters(start, end);
+  //   // Place arrows along the path
+  //   for (let i = 0; i < coordinates.length - 1; i++) {
+  //     const start = coordinates[i];
+  //     const end = coordinates[i + 1];
+  //     const totalDistance = getDistanceInMeters(start, end);
 
-      const intermediatePoints = getIntermediatePoints(start, end, totalDistance);
-      const angle =
-        (Math.atan2(
-          end.longitude - start.longitude,
-          end.latitude - start.latitude
-        ) *
-          180) /
-        Math.PI;
+  //     const intermediatePoints = getIntermediatePoints(start, end, totalDistance);
+  //     const angle =
+  //       (Math.atan2(
+  //         end.longitude - start.longitude,
+  //         end.latitude - start.latitude
+  //       ) *
+  //         180) /
+  //       Math.PI;
 
-      intermediatePoints.forEach((point, index) => {
-        arrows.push(
-          <Marker
-            key={`arrow-${i}-${index}`}
-            coordinate={point}
-            anchor={{ x: 0.5, y: 0.5 }}
-          >
-            <MaterialCommunityIcons
-              name="arrow-right"
-              size={24} // Adjust size as needed
-              color="red" // Arrow color
-              style={{ transform: [{ rotate: `${angle}deg` }] }}
-            />
-          </Marker>
-        );
-      });
-    }
+  //     intermediatePoints.forEach((point, index) => {
+  //       arrows.push(
+  //         <Marker
+  //           key={`arrow-${i}-${index}`}
+  //           coordinate={point}
+  //           anchor={{ x: 0.5, y: 0.5 }}
+  //         >
+  //           <MaterialCommunityIcons
+  //             name="arrow-right"
+  //             size={24} // Adjust size as needed
+  //             color="red" // Arrow color
+  //             style={{ transform: [{ rotate: `${angle}deg` }] }}
+  //           />
+  //         </Marker>
+  //       );
+  //     });
+  //   }
 
-    return arrows;
-  };
+  //   return arrows;
+  // };
 
   return (
     <View style={styles.container}>
@@ -214,7 +214,7 @@ const History = () => {
                 />
 
                 {/* Render arrows above polyline */}
-                {renderArrowsAlongPath(coordinates)}
+                {/*renderArrowsAlongPath(coordinates)*/}
               </>
             );
           })}
